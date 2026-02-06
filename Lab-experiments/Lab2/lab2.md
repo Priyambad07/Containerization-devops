@@ -9,7 +9,7 @@
 ## Step 1: Pull Docker Image
 Command used:  
 docker pull nginx 
-![Screenshot](1.png) 
+![Screenshot](./1.png) 
 
 ## Step 2: Run Container with Port Mapping
 Command used:  
