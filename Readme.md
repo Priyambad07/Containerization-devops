@@ -1,10 +1,7 @@
-# Laboratory Experiments Repository
+# Containerization and DevOps Lab
 
-This repository contains laboratory experiment documentation organized in a structured and easy-to-navigate format.
 
----
+## LAB
+[Experiment 1]()
 
-## Folder Structure
-
-The main directory consists of two folders. Each folder contains Markdown files documenting individual laboratory experiments.
-
+[Experiment 2](./Lab-experiments/Lab2/lab2.md)
