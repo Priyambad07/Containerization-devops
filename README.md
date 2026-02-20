@@ -9,4 +9,6 @@
 
 [Experiment 2](./Lab-experiments/Lab2/lab2.md)
 
+[Experiment 3](./Lab-experiments/Lab3/Readme.md)
+
 ## Class
