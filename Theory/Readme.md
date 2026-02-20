@@ -153,7 +153,7 @@ Always secure Docker API with TLS authentication when exposing externally.
 
 ---
 
-# 106 – Core Docker Commands for Tasks
+# Core Docker Commands for Tasks
 
 Check Logs:
 docker logs <container_id>
@@ -207,7 +207,7 @@ Best Practices:
 
 ---
 
-# 110 – Attach to Stopped Containers
+#  Attach to Stopped Containers
 
 Start Stopped Container:
 docker start <container_id>
@@ -220,7 +220,7 @@ docker exec -it <container_id> bash
 
 ---
 
-# 201 – Data Management in Docker
+# Data Management in Docker
 
 Volume (Docker Managed Storage):
 docker volume create myvolume
@@ -238,7 +238,7 @@ docker run --tmpfs /app image_name
 
 ---
 
-# 202 – Networking in Docker
+#  Networking in Docker
 
 List Networks:
 docker network ls
@@ -257,28 +257,9 @@ Default Network Types:
 - none
 - custom bridge
 
----
 
-# Docker Lifecycle Summary
-
-Create Container:
-docker create image_name
-
-Run Container:
-docker run image_name
-
-Stop Container:
-docker stop <container_id>
-
-Remove Container:
-docker rm <container_id>
-
-Remove Image:
-docker rmi <image_id>
 
 ---
-
-
 
 These are essential concepts for containerized application deployment in modern DevOps environments.
 
