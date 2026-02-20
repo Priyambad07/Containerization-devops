@@ -1,7 +1,7 @@
 # Containerization and DevOps Lab
 ## NAME : Priyambad suman
 ## Sap ID : 500125300
-## BAtch 1 (CCVT)
+## Batch 1 (CCVT)
 
 
 ## LAB
@@ -12,3 +12,7 @@
 [Experiment 3](./Lab-experiments/Lab3/Readme.md)
 
 ## Class
+
+->  Notes
+
+[Theory](./Theory/Readme.md)
