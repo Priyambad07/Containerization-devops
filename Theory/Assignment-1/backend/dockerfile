@@ -1,0 +1,47 @@
+# Stage 1: Build Stage
+FROM node:18-alpine AS builder
+
+LABEL stage=builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm install --production && \
+    npm cache clean --force
+
+# Copy source code
+COPY . .
+
+# Stage 2: Runtime Stage (Production Image)
+FROM node:18-alpine
+
+LABEL maintainer="DevOps Team" \
+      description="Production-ready Node.js Express API" \
+      version="1.0.0"
+
+WORKDIR /app
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Copy only production files from builder
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/*.js ./
+COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
+
+# Switch to non-root user
+USER nodejs
+
+# Expose API port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+    CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+
+# Start application
+CMD ["node", "server.js"]

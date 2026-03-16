@@ -18,3 +18,8 @@
 ->  Notes
 
 [Theory](./Theory/Readme.md)
+
+## Assignments
+
+-> Assignment 1
+[Assignment-1](./Theory/Assignment-1/Readme.md)

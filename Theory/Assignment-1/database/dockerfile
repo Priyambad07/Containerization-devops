@@ -1,0 +1,21 @@
+FROM postgres:15
+
+LABEL maintainer="DevOps Team" \
+      description="PostgreSQL Database Container" \
+      version="15"
+
+# Set environment variables
+ENV POSTGRES_DB=appdb \
+    POSTGRES_USER=postgres \
+    POSTGRES_PASSWORD=postgres \
+    PGDATA=/var/lib/postgresql/data/pgdata
+
+# Copy initialization scripts
+COPY init.sql /docker-entrypoint-initdb.d/01-init.sql
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=10s \
+    CMD ["pg_isready", "-U", "postgres"]
+
+# Default command (inherited from postgres:15)
+CMD ["postgres"]
