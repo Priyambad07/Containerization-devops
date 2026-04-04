@@ -55,8 +55,7 @@ networks:
   app_network:
     driver: ipvlan
     driver_opts:
-      ipvlan_mode: l2
-      parent: eth0
+      parent: eth0          # Change to your host interface (eth0, ens0, wlan0, etc.)
     ipam:
       config:
         - subnet: 192.168.50.0/24
