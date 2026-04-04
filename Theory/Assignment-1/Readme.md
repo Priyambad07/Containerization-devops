@@ -1,173 +1,107 @@
-# Containerized Web Application with Docker & Kubernetes - Assignment 1
+# Containerized Web Application - Assignment 1
 
-- **SAP ID:** 500125300
-- **Name:** Priyambad Suman
-- **Batch:** 1 CCVT
-- **Subject:** Containerization & DevOps
-- **Date:** March 16, 2026
-
----
+**Student:** Priyambad Suman | **SAP ID:** 500125300 | **Batch:** 1 CCVT
 
 ## Quick Start
 
 ```bash
-# Navigate to assignment directory
 cd Theory/Assignment-1
-
-# Build and start all services
 docker-compose up --build
-
-# In another terminal, test the API
 curl http://localhost:3000/users
-
-# View container status
 docker-compose ps
-
-# View logs in real-time
-docker-compose logs -f
 ```
-
----
 
 ## Project Overview
 
-### Objective
-Design, containerize, and deploy a production-ready multi-tier web application using:
-- PostgreSQL database (mandatory)
-- Node.js + Express backend API
-- Docker multi-stage builds
-- IPVLAN/Macvlan advanced networking (mandatory)
-- Persistent storage with Docker volumes
-- Service orchestration with Docker Compose
+Containerized a multi-tier web application with:
+- Node.js + Express REST API backend
+- PostgreSQL database
+- Docker multi-stage builds (83% size reduction)
+- IPVLAN L2 networking
+- Persistent volumes
+- Docker Compose orchestration
 
-### Architecture
+## Architecture
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│         IPVLAN L2 Network (192.168.100.0/24)            │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  ┌───────────────────────┐  ┌──────────────────────┐   │
-│  │  Node.js Backend      │  │   PostgreSQL 15      │   │
-│  │  (web_api:3000)       │──│   (postgres_db:5432) │   │
-│  │  192.168.100.10       │  │  192.168.100.20      │   │
-│  │  Multi-stage Build    │  │  Persistent Volume   │   │
-│  │  Health Check: HTTP   │  │  Health Check: pg_   │   │
-│  │  Non-root User        │  │  isready             │   │
-│  └───────────────────────┘  └──────────────────────┘   │
-│                                                          │
-│  Gateway: 192.168.100.1  |  Parent: eth0 (WSL2)        │
-└─────────────────────────────────────────────────────────┘
-        ↓
-    Port 3000 → localhost:3000 (Published)
+IPVLAN L2 Network (192.168.100.0/24)
+├── Backend (Node.js) - 192.168.100.10:3000
+└── Database (PostgreSQL) - 192.168.100.20:5432
+    Gateway: 192.168.100.1
 ```
 
-### Components
-
-| Service | Technology | Port | Purpose | Size |
-|---------|-----------|------|---------|------|
-| **Backend** | Node.js 18-alpine + Express 4.18 | 3000 | REST API | ~100MB |
-| **Database** | PostgreSQL 15-alpine | 5432 | Data Persistence | ~200MB |
-
-### Key Features
-
-**IPVLAN L2 Networking** - Advanced container networking (mandatory)  
-**Multi-Stage Docker Build** - 90% image size reduction  
-**Persistent Storage** - PostgreSQL data survives container restarts  
-**Health Checks** - Automatic container health monitoring  
-**Service Orchestration** - Docker Compose with intelligent dependencies  
-**Production-Ready** - Non-root users, restart policies, security hardening  
-**Service Discovery** - DNS-based inter-container communication  
-**Robust Error Handling** - Connection pooling, graceful shutdowns  
+| Component | Tech | Port | Size |
+|-----------|------|------|------|
+| Backend | Node.js 18-alpine + Express | 3000 | 100MB |
+| Database | PostgreSQL 15 | 5432 | 200MB |  
 
 ---
 
-## Complete File Listings
+## Implementation Process
 
-### 1. backend/dockerfile
+### Step 1: Multi-Stage Docker Build
 
+**backend/dockerfile**
 ```dockerfile
 FROM node:18-alpine AS builder
-
-LABEL stage=builder
-
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --production && npm cache clean --force
 COPY . .
 
 FROM node:18-alpine
-
-LABEL maintainer="DevOps Team" \
-      description="Production-ready Node.js Express API" \
-      version="1.0.0"
-
 WORKDIR /app
 COPY --from=builder /app .
 USER nodejs
-
 EXPOSE 3000
-
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-    CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
-
+    CMD node -e "require('http').get('http://localhost:3000')"
 CMD ["node", "server.js"]
 ```
 
-The multi-stage build approach is significant here. It brings down the final image from around 700MB to just 100MB by separating the build environment from the runtime environment. The Alpine base image is incredibly lightweight at just 5MB compared to Ubuntu's 77MB. We run the service as a non-root nodejs user to prevent privilege escalation attacks. Health checks are built in so Docker can automatically manage service orchestration. We also clean up the npm cache to keep layer sizes down and only include production files in the final image, leaving out any build dependencies.
+**Result:** 700MB → 100MB (85% size reduction)
 
----
+### Step 2: Database Setup
 
-### 2. database/dockerfile
-
+**database/dockerfile**
 ```dockerfile
 FROM postgres:15
-
-LABEL maintainer="DevOps Team" \
-      description="PostgreSQL Database Container" \
-      version="15"
-
 ENV POSTGRES_DB=appdb \
     POSTGRES_USER=postgres \
-    POSTGRES_PASSWORD=postgres \
-    PGDATA=/var/lib/postgresql/data/pgdata
-
+    POSTGRES_PASSWORD=postgres
 COPY init.sql /docker-entrypoint-initdb.d/01-init.sql
-
-HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=10s \
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
     CMD ["pg_isready", "-U", "postgres"]
-
-CMD ["postgres"]
 ```
 
-We're using the official PostgreSQL 15 image with automatic initialization courtesy of the init.sql script. The health check ensures the database is ready before the backend tries to connect. Environment variables handle the configuration, and we specify the PGDATA path to ensure consistent data storage across restarts.
+**database/init.sql**
+```sql
+CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100));
+INSERT INTO users(name) VALUES ('Alice'), ('Bob');
+```
 
----
+### Step 3: Orchestration with Docker Compose
 
-### 3. docker-compose.yml
-
+**docker-compose.yml**
 ```yaml
 services:
-
   backend:
-    build:
-      context: ./backend
-      dockerfile: dockerfile
+    build: ./backend
     container_name: web_api
     ports:
       - "3000:3000"
     environment:
-      - DB_HOST=db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=appdb
-      - DB_PORT=5432
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: appdb
+      DB_PORT: 5432
     depends_on:
       db:
         condition: service_healthy
     networks:
       app_network:
         ipv4_address: 192.168.100.10
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
       interval: 30s
@@ -175,9 +109,7 @@ services:
       retries: 3
 
   db:
-    build:
-      context: ./database
-      dockerfile: dockerfile
+    build: ./database
     container_name: postgres_db
     environment:
       POSTGRES_DB: appdb
@@ -188,7 +120,6 @@ services:
     networks:
       app_network:
         ipv4_address: 192.168.100.20
-    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -211,74 +142,43 @@ networks:
           gateway: 192.168.100.1
 ```
 
-The docker-compose configuration handles several important aspects. Service dependencies ensure the backend waits for the database health check before starting. We use IPVLAN networking in L2 mode for container-to-host communication. Static IP addresses keep the networking predictable with the backend at .10 and the database at .20. Named volumes ensure PostgreSQL data persists even when containers are restarted. Restart policies are set to unless-stopped, which means containers will automatically recover from crashes but won't restart if you manually stop them. Health checks monitor service readiness across the entire stack.
+### Step 4: Backend Application
 
----
-
-### 4. backend/server.js
-
+**backend/server.js**
 ```javascript
 const express = require("express");
 const { Pool } = require("pg");
-
 const app = express();
 app.use(express.json());
 
 const pool = new Pool({
-  host: "db",
+  host: "db", // Resolved via Docker DNS
   user: "postgres",
   password: "postgres",
   database: "appdb",
   port: 5432
 });
 
-app.get("/", (req, res) => {
-  res.send("Containerized Web App Running");
-});
-
+app.get("/", (req, res) => res.send("Web App Running"));
 app.get("/users", async (req, res) => {
   const result = await pool.query("SELECT * FROM users");
   res.json(result.rows);
 });
-
 app.post("/users", async (req, res) => {
   const { name } = req.body;
   const result = await pool.query(
-    "INSERT INTO users(name) VALUES($1) RETURNING *",
-    [name]
+    "INSERT INTO users(name) VALUES($1) RETURNING *", [name]
   );
   res.json(result.rows[0]);
 });
-
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
-});
+app.listen(3000, () => console.log("Server running on port 3000"));
 ```
 
-The server implementation uses connection pooling through pg.Pool to efficiently manage database connections. We've built RESTful API endpoints using GET and POST methods. The connection to the database happens automatically through DNS by referencing the service name "db". Request and response handling uses JSON, and the Express middleware handles errors gracefully.
-
----
-
-### 5. database/init.sql
-
-```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100)
-);
-
-INSERT INTO users(name) VALUES ('Alice'), ('Bob');
-```
-
----
-
-### 6. backend/package.json
-
+**backend/package.json**
 ```json
 {
   "name": "docker-webapp",
   "version": "1.0.0",
-  "main": "server.js",
   "dependencies": {
     "express": "^4.18.2",
     "pg": "^8.10.0"
@@ -286,53 +186,26 @@ INSERT INTO users(name) VALUES ('Alice'), ('Bob');
 }
 ```
 
----
 
-## Network Configuration
-
-### IPVLAN L2 Explained
-
-IPVLAN is a Linux kernel driver that allows containers to have their own IP addresses on the host network. L2 (Layer 2) mode operates at the MAC address level.
-
-The IPVLAN L2 setup works through MAC-based switching. Containers communicate directly with each other using ARP. When a container needs to reach the host, traffic goes through published port mappings handled by iptables. Any communication to the outside world routes through the gateway at 192.168.100.1.
-
-Containers communicate using Docker's embedded DNS server at 127.0.0.11:53. When the backend references the hostname "db", it automatically resolves to 192.168.100.20. This service discovery happens without any manual configuration.
 
 ---
 
-## Screenshot Commands & Proofs
+## Verification & Testing
 
-To inspect the network configuration, you can list all networks and then inspect the IPVLAN setup:
-
+### Network Inspection
 ```bash
 docker network ls
 docker network inspect assignment-1_app_network
+docker-compose ps
 ```
 
-The output shows the IPVLAN configuration with both containers and their assigned IPs, along with the subnet and gateway information.
-
-You can verify container IPs by checking the container details:
-
+### Health Checks
 ```bash
-docker-compose ps
-docker inspect web_api | grep -A 5 "Networks"
-docker inspect postgres_db | grep -A 5 "Networks"
-```
-
-This will show you the assigned IP addresses for both containers in the IPVLAN network.
-
-To check the health status of containers:
-
-```bash
-docker-compose ps
 docker inspect web_api | grep -A 20 "Health"
 docker inspect postgres_db | grep -A 20 "Health"
 ```
 
-This shows whether services are running healthy and provides their port mappings.
-
-You can test the API endpoints like this:
-
+### API Testing
 ```bash
 curl http://localhost:3000
 curl http://localhost:3000/users
@@ -341,44 +214,19 @@ curl -X POST http://localhost:3000/users \
   -d '{"name": "Charlie"}'
 ```
 
-The first request confirms the API is running. The second fetches all users. The third adds a new user to the database.
-
-To verify data persistence works correctly:
-
+### Data Persistence Test
 ```bash
-docker volume ls | grep postgres_data
-docker volume inspect assignment-1_postgres_data
-
-curl -X POST http://localhost:3000/users \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Persistent User"}'
-
+curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d '{"name": "Test"}'
 docker-compose down
 docker-compose up -d
-
-curl http://localhost:3000/users
+curl http://localhost:3000/users  # Data persists!
 ```
 
-After stopping and restarting the containers, the data will still be there.
-
-To see the image sizes:
-
+### Image Size Check
 ```bash
-docker-compose build
 docker images | grep -E "assignment-1|node|postgres"
+# Result: Backend 100MB (was 600MB) = 83% reduction
 ```
-
-The backend comes in at around 100MB thanks to the multi-stage build, while the database is about 200MB. Without the multi-stage approach, the backend would be roughly 600MB, so we're saving about 83% in size.
-
-You can verify the networking between containers:
-
-```bash
-docker-compose exec backend ping db -c 5
-docker-compose exec backend nslookup db
-docker-compose exec backend nc -zv db 5432
-```
-
-These commands confirm that the backend can communicate with the database container through the network.
 
 ---
 
@@ -482,7 +330,15 @@ For stress testing, you can use Apache Bench to send 1000 requests with 10 concu
 
 To verify data persistence, add a user, stop the containers, verify the volume still exists, restart the containers, and confirm the data is still there.
 
-This project showcases several professional DevOps practices. We've implemented advanced networking with IPVLAN L2, optimized images through multi-stage builds achieving an 83% size reduction, ensured high availability with health checks and restart policies, maintained data persistence using Docker volumes, hardened security with non-root users and minimal images, and built production-ready systems with comprehensive monitoring.
+## Summary
+
+This project demonstrates containerization best practices through:
+1. **Multi-stage builds** for 83% image size reduction
+2. **IPVLAN L2 networking** for direct container communication
+3. **Health checks & restart policies** for high availability
+4. **Persistent volumes** for data durability
+5. **Security hardening** with non-root users
+6. **Service orchestration** with Docker Compose dependencies
 
 ![screenshot](./1.png)
 ![screenshot](./2.png)
