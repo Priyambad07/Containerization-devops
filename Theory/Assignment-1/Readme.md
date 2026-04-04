@@ -338,7 +338,7 @@ This project demonstrates containerization best practices through:
 3. **Health checks & restart policies** for high availability
 4. **Persistent volumes** for data durability
 5. **Security hardening** with non-root users
-6. **Service orchestration** with Docker Compose dependencies
+**Service orchestration** with Docker Compose dependencies
 
 ![screenshot](./1.png)
 ![screenshot](./2.png)
