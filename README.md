@@ -13,6 +13,15 @@
 
 [Experiment 4](./Lab-experiments/Lab4/Readme.md)
 
+[Experiment 5](./Lab-experiments/Lab5/Readme.md)
+
+[Experiment 6](./Lab-experiments/Lab6/readme.md)
+
+[Experiment 7](./Lab-experiments/Lab7/readme.md)
+
+[Experiment 9](./Lab-experiments/Lab9/readme.md
+)
+
 ## Class
 
 ->  Notes
