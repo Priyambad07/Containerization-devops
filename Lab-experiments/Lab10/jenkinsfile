@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    environment {
+        SONAR_HOST_URL = 'http://sonarqube:9000'
+        // 'sonar-token' is a Jenkins credential — store your token there
+        SONAR_TOKEN = credentials('sonar-token')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                // Pull the latest code from the repository
+                checkout scm
+            }
+        }
+
+
+	stage('SonarQube Analysis') {
+    		steps {
+        		// This injects SonarQube server URL + authentication token
+        		withSonarQubeEnv('SonarQube') {
+
+ 		        // mvn = Maven tool (used mainly for Java projects)
+            		// clean = remove old build files
+            		// verify = compile code + run tests
+            		// sonar:sonar = send analysis report to SonarQube server
+            		sh 'mvn clean verify sonar:sonar'
+			}
+    		}
+	}
+
+        stage('Quality Gate') {
+            steps {
+                // Wait for SonarQube to finish processing the report.
+                // If the Quality Gate fails, the pipeline stops here.
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // Only runs if Quality Gate passed
+                sh 'mvn package'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh 'docker build -t sample-app .'
+                sh 'docker run -d -p 8080:8080 sample-app'
+            }
+        }
+    }
+}
