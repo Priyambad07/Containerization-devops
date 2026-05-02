@@ -19,8 +19,13 @@
 
 [Experiment 7](./Lab-experiments/Lab7/readme.md)
 
-[Experiment 9](./Lab-experiments/Lab9/readme.md
-)
+[Experiment 9](./Lab-experiments/Lab9/readme.md)
+
+[Experiment 10](./Lab-experiments/Lab10/readme.md)
+
+[Experiment 11](./Lab-experiments/Lab11/readme.md)
+
+[Experiment 12](./Lab-experiments/Lab12/Readme.md)
 
 ## Class
 
